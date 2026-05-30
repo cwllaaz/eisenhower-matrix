@@ -30,6 +30,11 @@ body.dark .stat-value{color:#ecf0f1}
 .search-bar{margin:15px 0}
 .search-bar input{width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px}
 body.dark .search-bar input{background:#2d2d2d;border-color:#444;color:#e0e0e0}
+.filter-bar{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap}
+.filter-tag{padding:8px 16px;border:2px solid #3498db;border-radius:20px;cursor:pointer;font-size:13px;background:#fff;transition:all .2s}
+.filter-tag.active{background:#3498db;color:#fff}
+body.dark .filter-tag{background:#2d2d2d;color:#e0e0e0}
+body.dark .filter-tag.active{background:#3498db;color:#fff}
 .container{display:grid;grid-template-columns:1fr 1fr;gap:15px;max-width:1200px;margin:0 auto}
 .quadrant{background:#fff;border-radius:8px;padding:15px;min-height:400px;box-shadow:0 2px 8px rgba(0,0,0,.1);transition:all .3s}
 body.dark .quadrant{background:#2d2d2d}
@@ -59,7 +64,17 @@ body.dark .task:hover{background:#444}
 .task-checkbox{width:18px;height:18px;cursor:pointer;margin-top:2px}
 .task-content{flex:1}
 .task-text{word-break:break-word;margin-bottom:4px}
-.task-meta{font-size:11px;color:#95a5a6}
+.task-meta{font-size:11px;color:#95a5a6;display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.tag-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.tag-work{background:#3498db;color:#fff}
+.tag-life{background:#2ecc71;color:#fff}
+.tag-study{background:#9b59b6;color:#fff}
+.tag-other{background:#95a5a6;color:#fff}
+.deadline-badge{padding:2px 8px;border-radius:10px;font-size:10px;background:#e8f5e9;color:#27ae60;font-weight:600}
+.deadline-soon{background:#fff3e0;color:#f39c12}
+.deadline-overdue{background:#ffebee;color:#e74c3c}
+.task.urgent{border-left-width:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 2px 8px rgba(0,0,0,.08)}50%{box-shadow:0 4px 16px rgba(231,76,60,.4)}}
 .task-actions{display:flex;gap:5px;opacity:0;transition:opacity .2s}
 .task:hover .task-actions{opacity:1}
 .task-btn{background:0 0;border:none;cursor:pointer;padding:4px 8px;border-radius:3px;font-size:12px}
@@ -103,6 +118,10 @@ h1{font-size:20px;text-align:center}
 <button class="theme-btn" onclick="toggleTheme()">🌓 主题</button>
 <button class="undo-btn" onclick="undo()" id="undoBtn" disabled>↶ 撤销</button>
 <button class="batch-btn" onclick="toggleBatch()" id="batchBtn">☑ 批量</button>
+<button class="pomodoro-btn" style="background:#e74c3c;color:#fff" onclick="showPomodoro()">🍅 番茄钟</button>
+<button class="review-btn" style="background:#8e44ad;color:#fff" onclick="showReview()">📋 今日回顾</button>
+<button class="calendar-btn" style="background:#27ae60;color:#fff" onclick="showCalendar()">📅 日历</button>
+<button class="summary-btn" style="background:#f39c12;color:#fff" onclick="showSummary()">📝 每日总结</button>
 <button class="export-btn" onclick="exportData()">导出</button>
 <button class="import-btn" onclick="document.getElementById('importFile').click()">导入</button>
 <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
@@ -118,6 +137,13 @@ h1{font-size:20px;text-align:center}
 </div>
 <div class="search-bar">
 <input type="text" id="searchInput" placeholder="🔍 搜索任务... (快捷键: Ctrl+F)" onkeyup="searchTasks()">
+</div>
+<div class="filter-bar" style="display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap">
+<button class="filter-tag active" onclick="filterByTag('')" data-tag="">全部</button>
+<button class="filter-tag" onclick="filterByTag('work')" data-tag="work">🏢 工作</button>
+<button class="filter-tag" onclick="filterByTag('life')" data-tag="life">🏠 生活</button>
+<button class="filter-tag" onclick="filterByTag('study')" data-tag="study">📚 学习</button>
+<button class="filter-tag" onclick="filterByTag('other')" data-tag="other">📌 其他</button>
 </div>
 </div>
 <div class="container">
@@ -169,6 +195,18 @@ h1{font-size:20px;text-align:center}
 <h3>任务详情</h3>
 <input type="text" id="detailTitle" placeholder="任务标题">
 <textarea id="detailDesc" placeholder="任务描述（可选）"></textarea>
+<label style="display:block;margin-bottom:5px;color:#7f8c8d;font-size:12px">截止日期</label>
+<input type="datetime-local" id="detailDeadline" style="margin-bottom:15px">
+<label style="display:block;margin-bottom:5px;color:#7f8c8d;font-size:12px">标签</label>
+<select id="detailTag" style="margin-bottom:15px">
+<option value="">无标签</option>
+<option value="work">🏢 工作</option>
+<option value="life">🏠 生活</option>
+<option value="study">📚 学习</option>
+<option value="other">📌 其他</option>
+</select>
+<label style="display:block;margin-bottom:5px;color:#7f8c8d;font-size:12px">附件链接</label>
+<input type="text" id="detailAttachment" placeholder="https://..." style="margin-bottom:15px">
 <div class="modal-actions">
 <button class="cancel-btn" onclick="closeModal()">取消</button>
 <button class="confirm-btn" onclick="confirmDetail()">保存</button>
@@ -185,6 +223,51 @@ h1{font-size:20px;text-align:center}
 </div>
 </div>
 </div>
+<div class="modal" id="pomodoroModal">
+<div class="modal-content">
+<h3>🍅 番茄钟</h3>
+<div style="text-align:center;padding:30px">
+<div id="pomodoroDisplay" style="font-size:48px;font-weight:700;margin:20px 0">25:00</div>
+<div style="display:flex;gap:10px;justify-content:center">
+<button onclick="startPomodoro()" style="padding:12px 24px;background:#27ae60;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">开始</button>
+<button onclick="pausePomodoro()" style="padding:12px 24px;background:#f39c12;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">暂停</button>
+<button onclick="resetPomodoro()" style="padding:12px 24px;background:#e74c3c;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">重置</button>
+</div>
+</div>
+<div class="modal-actions">
+<button class="cancel-btn" onclick="closeModal()">关闭</button>
+</div>
+</div>
+</div>
+<div class="modal" id="reviewModal">
+<div class="modal-content">
+<h3>📋 今日回顾</h3>
+<div id="reviewContent" style="max-height:400px;overflow-y:auto"></div>
+<div class="modal-actions">
+<button class="cancel-btn" onclick="closeModal()">关闭</button>
+</div>
+</div>
+</div>
+<div class="modal" id="calendarModal">
+<div class="modal-content" style="max-width:800px">
+<h3>📅 任务日历</h3>
+<div id="calendarContent" style="padding:20px"></div>
+<div class="modal-actions">
+<button class="cancel-btn" onclick="closeModal()">关闭</button>
+</div>
+</div>
+</div>
+<div class="modal" id="summaryModal">
+<div class="modal-content">
+<h3>📝 每日总结</h3>
+<input type="date" id="summaryDate" style="margin-bottom:10px">
+<textarea id="summaryText" placeholder="写下今天的总结..." style="min-height:200px"></textarea>
+<div class="modal-actions">
+<button class="cancel-btn" onclick="closeModal()">取消</button>
+<button class="confirm-btn" onclick="saveSummary()">保存</button>
+</div>
+</div>
+</div>
 <script>
 let tasks=JSON.parse(localStorage.getItem('tasks'))||{q1:[],q2:[],q3:[],q4:[]};
 let history=[];
@@ -195,6 +278,11 @@ let draggedInQuadrant=null;
 let editingTask=null;
 let deletingTask=null;
 let detailTask=null;
+let currentFilter='';
+let pomodoroTimer=null;
+let pomodoroSeconds=1500;
+let pomodoroRunning=false;
+let summaries=JSON.parse(localStorage.getItem('summaries'))||{};
 
 function saveState(){
 history.push(JSON.stringify(tasks));
@@ -271,12 +359,42 @@ const text=document.createElement('div');
 text.className='task-text';
 text.textContent=task.text||task;
 content.appendChild(text);
-if(task.createdAt){
 const meta=document.createElement('div');
 meta.className='task-meta';
-meta.textContent=new Date(task.createdAt).toLocaleString('zh-CN');
-content.appendChild(meta);
+if(task.deadline){
+const now=new Date();
+const deadline=new Date(task.deadline);
+const hours=(deadline-now)/3600000;
+const badge=document.createElement('span');
+badge.className='deadline-badge';
+if(hours<0)badge.classList.add('deadline-overdue');
+else if(hours<24)badge.classList.add('deadline-soon');
+badge.textContent='⏰ '+deadline.toLocaleString('zh-CN',{month:'numeric',day:'numeric',hour:'numeric',minute:'numeric'});
+meta.appendChild(badge);
+if(hours<24&&hours>0)div.classList.add('urgent');
 }
+if(task.tag){
+const tagMap={work:'🏢 工作',life:'🏠 生活',study:'📚 学习',other:'📌 其他'};
+const badge=document.createElement('span');
+badge.className='tag-badge tag-'+task.tag;
+badge.textContent=tagMap[task.tag]||task.tag;
+meta.appendChild(badge);
+}
+if(task.attachment){
+const link=document.createElement('a');
+link.href=task.attachment;
+link.target='_blank';
+link.style.cssText='font-size:10px;color:#3498db;text-decoration:none';
+link.textContent='📎 附件';
+meta.appendChild(link);
+}
+if(task.createdAt){
+const time=document.createElement('span');
+time.textContent=new Date(task.createdAt).toLocaleString('zh-CN',{month:'numeric',day:'numeric'});
+meta.appendChild(time);
+}
+if(meta.children.length>0)content.appendChild(meta);
+if(currentFilter&&task.tag!==currentFilter)div.classList.add('hidden');
 left.appendChild(content);
 header.appendChild(left);
 
@@ -333,9 +451,12 @@ updateStats();
 function toggleComplete(q,index){
 saveState();
 if(typeof tasks[q][index]==='string'){
-tasks[q][index]={text:tasks[q][index],completed:true,createdAt:Date.now()};
+tasks[q][index]={text:tasks[q][index],completed:true,completedAt:Date.now(),createdAt:Date.now()};
 }else{
 tasks[q][index].completed=!tasks[q][index].completed;
+if(tasks[q][index].completed){
+tasks[q][index].completedAt=Date.now();
+}
 }
 saveTasks();
 renderTasks();
@@ -405,6 +526,9 @@ detailTask={q,index};
 const task=tasks[q][index];
 document.getElementById('detailTitle').value=task.text||task;
 document.getElementById('detailDesc').value=task.desc||'';
+document.getElementById('detailDeadline').value=task.deadline||'';
+document.getElementById('detailTag').value=task.tag||'';
+document.getElementById('detailAttachment').value=task.attachment||'';
 document.getElementById('detailModal').classList.add('active');
 document.getElementById('detailTitle').focus();
 }
@@ -414,12 +538,18 @@ if(detailTask){
 saveState();
 const title=document.getElementById('detailTitle').value.trim();
 const desc=document.getElementById('detailDesc').value.trim();
+const deadline=document.getElementById('detailDeadline').value;
+const tag=document.getElementById('detailTag').value;
+const attachment=document.getElementById('detailAttachment').value.trim();
 if(title){
 if(typeof tasks[detailTask.q][detailTask.index]==='string'){
-tasks[detailTask.q][detailTask.index]={text:title,desc,completed:false,createdAt:Date.now()};
+tasks[detailTask.q][detailTask.index]={text:title,desc,deadline,tag,attachment,completed:false,createdAt:Date.now()};
 }else{
 tasks[detailTask.q][detailTask.index].text=title;
 tasks[detailTask.q][detailTask.index].desc=desc;
+tasks[detailTask.q][detailTask.index].deadline=deadline;
+tasks[detailTask.q][detailTask.index].tag=tag;
+tasks[detailTask.q][detailTask.index].attachment=attachment;
 }
 saveTasks();
 renderTasks();
@@ -546,6 +676,126 @@ showAddInput('q1');
 
 if(localStorage.getItem('theme')==='dark'){
 document.body.classList.add('dark');
+}
+
+function filterByTag(tag){
+currentFilter=tag;
+document.querySelectorAll('.filter-tag').forEach(btn=>{
+btn.classList.toggle('active',btn.dataset.tag===tag);
+});
+renderTasks();
+}
+
+function showPomodoro(){
+document.getElementById('pomodoroModal').classList.add('active');
+}
+
+function startPomodoro(){
+if(!pomodoroRunning){
+pomodoroRunning=true;
+pomodoroTimer=setInterval(()=>{
+pomodoroSeconds--;
+const mins=Math.floor(pomodoroSeconds/60);
+const secs=pomodoroSeconds%60;
+document.getElementById('pomodoroDisplay').textContent=`${mins}:${secs.toString().padStart(2,'0')}`;
+if(pomodoroSeconds<=0){
+clearInterval(pomodoroTimer);
+pomodoroRunning=false;
+pomodoroSeconds=1500;
+if(Notification.permission==='granted'){
+new Notification('🍅 番茄钟',{body:'25分钟工作时间结束！休息一下吧~'});
+}
+alert('番茄钟结束！休息5分钟吧~');
+}
+},1000);
+}
+}
+
+function pausePomodoro(){
+if(pomodoroRunning){
+clearInterval(pomodoroTimer);
+pomodoroRunning=false;
+}
+}
+
+function resetPomodoro(){
+clearInterval(pomodoroTimer);
+pomodoroRunning=false;
+pomodoroSeconds=1500;
+document.getElementById('pomodoroDisplay').textContent='25:00';
+}
+
+function showReview(){
+const today=new Date().toDateString();
+let html='<div style="padding:10px">';
+let count=0;
+['q1','q2','q3','q4'].forEach(q=>{
+const completed=tasks[q].filter(t=>t.completed&&t.completedAt&&new Date(t.completedAt).toDateString()===today);
+if(completed.length>0){
+const names={q1:'🔥 重要且紧急',q2:'⭐ 重要不紧急',q3:'⚡ 紧急不重要',q4:'💤 不重要不紧急'};
+html+=`<h4 style="margin:15px 0 10px;color:#333">${names[q]} (${completed.length})</h4>`;
+completed.forEach(t=>{
+html+=`<div style="padding:8px;margin:5px 0;background:#f8f9fa;border-radius:6px;border-left:3px solid #2ecc71">${t.text||t}</div>`;
+count++;
+});
+}
+});
+if(count===0)html+='<p style="text-align:center;color:#999;padding:40px">今天还没有完成任务哦~</p>';
+else html+=`<p style="margin-top:20px;text-align:center;color:#27ae60;font-weight:700">今日共完成 ${count} 个任务！👏</p>`;
+html+='</div>';
+document.getElementById('reviewContent').innerHTML=html;
+document.getElementById('reviewModal').classList.add('active');
+}
+
+function showCalendar(){
+let html='<div style="padding:10px">';
+const tasksByDate={};
+['q1','q2','q3','q4'].forEach(q=>{
+tasks[q].forEach(t=>{
+if(t.deadline){
+const date=new Date(t.deadline).toLocaleDateString('zh-CN');
+if(!tasksByDate[date])tasksByDate[date]=[];
+tasksByDate[date].push({...t,quadrant:q});
+}
+});
+});
+const dates=Object.keys(tasksByDate).sort();
+if(dates.length===0){
+html+='<p style="text-align:center;color:#999;padding:40px">暂无设置截止日期的任务</p>';
+}else{
+dates.forEach(date=>{
+html+=`<h4 style="margin:15px 0 10px;color:#333">${date}</h4>`;
+tasksByDate[date].forEach(t=>{
+const colors={q1:'#e74c3c',q2:'#3498db',q3:'#f39c12',q4:'#95a5a6'};
+html+=`<div style="padding:8px;margin:5px 0;background:#f8f9fa;border-radius:6px;border-left:3px solid ${colors[t.quadrant]}">${t.text||t}</div>`;
+});
+});
+}
+html+='</div>';
+document.getElementById('calendarContent').innerHTML=html;
+document.getElementById('calendarModal').classList.add('active');
+}
+
+function showSummary(){
+const today=new Date().toISOString().split('T')[0];
+document.getElementById('summaryDate').value=today;
+document.getElementById('summaryText').value=summaries[today]||'';
+document.getElementById('summaryModal').classList.add('active');
+}
+
+function saveSummary(){
+const date=document.getElementById('summaryDate').value;
+const text=document.getElementById('summaryText').value;
+if(date&&text){
+summaries[date]=text;
+localStorage.setItem('summaries',JSON.stringify(summaries));
+alert('总结已保存！');
+closeModal();
+}
+}
+
+if(Notification.permission==='default'){
+Notification.requestPermission();
 }
 
 renderTasks();
